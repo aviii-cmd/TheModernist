@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif text-ink;
+    letter-spacing: -0.01em;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  ::selection {
+    background: #1f3d6622;
+  }
+
+  /* Visible keyboard focus, kept deliberately simple */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #1f3d66;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Article body copy — used for the rich-text article renderer and the Tiptap editor */
+  .article-prose {
+    @apply font-serif text-[19px] leading-[1.7] text-ink;
+    max-width: 68ch;
+  }
+
+  .article-prose p {
+    @apply mb-5;
+  }
+
+  .article-prose h2 {
+    @apply mt-10 mb-4 text-[26px] leading-tight;
+  }
+
+  .article-prose h3 {
+    @apply mt-8 mb-3 text-[21px] leading-tight;
+  }
+
+  .article-prose a {
+    @apply text-accent underline decoration-1 underline-offset-2;
+  }
+
+  .article-prose blockquote {
+    @apply my-6 border-l-2 border-accent pl-5 font-serif text-[21px] italic leading-snug text-ink;
+  }
+
+  .article-prose ul {
+    @apply mb-5 ml-5 list-disc;
+  }
+
+  .article-prose ol {
+    @apply mb-5 ml-5 list-decimal;
+  }
+
+  .article-prose li {
+    @apply mb-1.5;
+  }
+
+  .article-prose img {
+    @apply my-6 w-full rounded;
+  }
+
+  .article-prose strong {
+    @apply font-semibold;
+  }
+}
