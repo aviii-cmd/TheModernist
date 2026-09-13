@@ -8,7 +8,7 @@ import { toast } from "@/lib/toast";
 import { createArticle, updateArticle, setArticleStatus, deleteArticle, type ArticleActionState } from "@/lib/actions/articles";
 import RichTextEditor from "@/components/RichTextEditor";
 import { articleContentHtml } from "@/lib/utils/content";
-import { toDatetimeLocalValue, isScheduled, formatDateTime } from "@/lib/utils/format";
+import { toDatetimeLocalValue, istInputToUtcIso, isScheduled, formatDateTime } from "@/lib/utils/format";
 import { CATEGORIES } from "@/types";
 import type { Author, ArticleCategory, ArticleStatus } from "@/types";
 
@@ -125,6 +125,7 @@ export default function ArticleEditor({
   }
 
   const busy = formPending || isPending || uploading;
+  const willSchedule = !!publishAt && new Date(istInputToUtcIso(publishAt)).getTime() > Date.now();
 
   return (
     <div>
@@ -262,7 +263,7 @@ export default function ArticleEditor({
               />
               <p className="mt-1 text-[12px] text-ink-secondary">
                 {publishAt
-                  ? new Date(publishAt).getTime() > Date.now()
+                  ? new Date(istInputToUtcIso(publishAt)).getTime() > Date.now()
                     ? "Scheduled — goes live automatically at this time once published."
                     : "In the past — will go live immediately once published."
                   : "Leave blank to publish immediately."}
@@ -323,7 +324,13 @@ export default function ArticleEditor({
               onClick={(e) => submitWithStatus("published", e.currentTarget.form as HTMLFormElement)}
               className="rounded bg-ink900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink900/90 disabled:opacity-60"
             >
-              {busy && pendingStatus === "published" ? "Publishing…" : "Publish"}
+              {busy && pendingStatus === "published"
+                ? willSchedule
+                  ? "Scheduling…"
+                  : "Publishing…"
+                : willSchedule
+                  ? "Schedule Publish"
+                  : "Publish"}
             </button>
           )}
 

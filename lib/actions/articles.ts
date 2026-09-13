@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/utils/format";
+import { slugify, istInputToUtcIso } from "@/lib/utils/format";
 import type { ArticleCategory, ArticleStatus } from "@/types";
 
 export type ArticleActionState = { error: string | null };
@@ -47,7 +47,12 @@ function fieldsFromForm(formData: FormData) {
       .filter(Boolean),
     // Left blank = "publish now" (the database trigger fills this in).
     // Set to a future time = scheduled publish, enforced by RLS, not a cron job.
-    published_at: publishedAtRaw ? new Date(publishedAtRaw).toISOString() : null,
+    // The datetime-local field is filled in as IST wall-clock time (see the
+    // editor), so it must be converted with the same fixed IST offset here —
+    // never `new Date(raw).toISOString()`, which silently uses whatever
+    // timezone this server process happens to run in (usually UTC) and was
+    // the source of the scheduling bug.
+    published_at: publishedAtRaw ? istInputToUtcIso(publishedAtRaw) : null,
   };
 }
 

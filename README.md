@@ -184,3 +184,21 @@ articles too, since the RLS policy can't distinguish "staff browsing the newsroo
 "staff browsing the public site with the same session." This isn't a security hole
 (only staff accounts can see it), just a minor UX quirk worth knowing about — use a
 private/incognito window if you want to preview exactly what the public sees.
+
+## 11. Bugfix — scheduled publishing used the wrong timezone
+
+The "Publish date & time" field was silently affected by whatever timezone the
+**server** process runs in (usually UTC on most hosts) instead of India/IST, which
+could shift a chosen publish time by 5.5 hours and made the editor's own preview text
+disagree with what got saved. Since The Modernist is an MDIS (India) publication, every
+schedule-related conversion (`lib/utils/format.ts`) now explicitly anchors to IST
+(`Asia/Kolkata`, fixed offset — India has no daylight saving) using deterministic
+arithmetic, rather than relying on the ambiguous "local time" of whatever machine runs
+the code. This is fixed regardless of what timezone your hosting provider's servers
+are in.
+
+Also worth knowing, since it's easy to miss: **setting a publish date on a draft does
+not publish it by itself.** The date only controls *when* an article becomes visible
+once it's actually published — you still need to click the button (now labeled
+"Schedule Publish" when a future date is set, or "Publish" for immediate). If an
+article you scheduled is stuck in Draft, that button was never actually clicked.
