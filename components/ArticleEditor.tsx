@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -67,6 +67,23 @@ export default function ArticleEditor({
   const [uploading, setUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<ArticleStatus>("draft");
+  // The status to submit lives in real React state (not a manual DOM mutation) —
+  // the hidden input below is fully controlled by it, and a ref + effect fires
+  // the actual submit only after that state has committed to the DOM. Directly
+  // poking a controlled input's `.value` and calling requestSubmit() in the same
+  // tick is a race: React can reassert its own `value` first, silently
+  // submitting the wrong status. This was the actual cause of Publish
+  // appearing to do nothing.
+  const [statusToSubmit, setStatusToSubmit] = useState<ArticleStatus>(values.status);
+  const [submitTick, setSubmitTick] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (submitTick > 0) {
+      formRef.current?.requestSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitTick]);
 
   const boundAction =
     mode === "new" ? createArticle : updateArticle.bind(null, articleId as string);
@@ -94,11 +111,10 @@ export default function ArticleEditor({
     setCoverImageUrl(data.publicUrl);
   }
 
-  function submitWithStatus(status: ArticleStatus, formEl: HTMLFormElement) {
+  function submitWithStatus(status: ArticleStatus) {
     setPendingStatus(status);
-    const statusInput = formEl.elements.namedItem("status") as HTMLInputElement;
-    statusInput.value = status;
-    formEl.requestSubmit();
+    setStatusToSubmit(status);
+    setSubmitTick((n) => n + 1);
   }
 
   function archiveOrRestore(next: ArticleStatus) {
@@ -129,8 +145,8 @@ export default function ArticleEditor({
 
   return (
     <div>
-      <form action={formAction} className="space-y-6">
-        <input type="hidden" name="status" value={values.status} />
+      <form ref={formRef} action={formAction} className="space-y-6">
+        <input type="hidden" name="status" value={statusToSubmit} />
 
         <div>
           <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-ink">
@@ -291,7 +307,7 @@ export default function ArticleEditor({
             <button
               type="button"
               disabled={busy}
-              onClick={(e) => submitWithStatus("draft", e.currentTarget.form as HTMLFormElement)}
+              onClick={() => submitWithStatus("draft")}
               className="rounded border border-border px-5 py-2.5 text-sm font-medium text-ink hover:bg-surface disabled:opacity-60"
             >
               {busy && pendingStatus === "draft" ? "Saving…" : "Save Draft"}
@@ -302,7 +318,7 @@ export default function ArticleEditor({
             <button
               type="button"
               disabled={busy}
-              onClick={(e) => submitWithStatus(values.status, e.currentTarget.form as HTMLFormElement)}
+              onClick={() => submitWithStatus(values.status)}
               className="rounded border border-border px-5 py-2.5 text-sm font-medium text-ink hover:bg-surface disabled:opacity-60"
             >
               {busy && pendingStatus === values.status ? "Saving…" : "Save Changes"}
@@ -321,7 +337,7 @@ export default function ArticleEditor({
             <button
               type="button"
               disabled={busy}
-              onClick={(e) => submitWithStatus("published", e.currentTarget.form as HTMLFormElement)}
+              onClick={() => submitWithStatus("published")}
               className="rounded bg-ink900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink900/90 disabled:opacity-60"
             >
               {busy && pendingStatus === "published"

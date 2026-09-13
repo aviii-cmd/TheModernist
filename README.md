@@ -202,3 +202,16 @@ not publish it by itself.** The date only controls *when* an article becomes vis
 once it's actually published — you still need to click the button (now labeled
 "Schedule Publish" when a future date is set, or "Publish" for immediate). If an
 article you scheduled is stuck in Draft, that button was never actually clicked.
+
+## 12. Bugfix — Publish/Save Draft/Save Changes buttons could submit the wrong status
+
+The hidden `status` field that these buttons target was a React-*controlled* input,
+but the click handler updated it by mutating the DOM element directly
+(`element.value = ...`) and then calling `form.requestSubmit()` in the same
+synchronous block. That's a race: React can reassert its own controlled value before
+(or instead of) the submission reads it, so the button could silently submit the
+*previous* status instead of the intended one — which is why Publish could appear to
+do nothing. It's now driven entirely through React state (a `statusToSubmit` value the
+hidden input is properly bound to) with the actual `requestSubmit()` call deferred to
+a `useEffect`, which only runs after that state has committed to the DOM. No more
+racing React's own reconciliation.
