@@ -93,7 +93,16 @@ export async function updateArticle(
   const fields = fieldsFromForm(formData);
   if (!fields.title) return { error: "Give the article a headline first." };
 
-  const { error } = await supabase.from("articles").update(fields).eq("id", id);
+  // `fieldsFromForm` deliberately doesn't include `status` (it's not a normal
+  // content field) — it has to be read and merged in separately here, the
+  // same way `createArticle` already does below. This was missing entirely,
+  // which is the actual reason clicking Publish on an existing draft never
+  // did anything: the update ran (other fields saved fine, hence `updated_at`
+  // changing), but `status` was never part of the payload being sent to the
+  // database at all.
+  const status = String(formData.get("status") ?? "draft") as ArticleStatus;
+
+  const { error } = await supabase.from("articles").update({ ...fields, status }).eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/newsroom/articles");

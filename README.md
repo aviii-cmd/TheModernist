@@ -215,3 +215,18 @@ do nothing. It's now driven entirely through React state (a `statusToSubmit` val
 hidden input is properly bound to) with the actual `requestSubmit()` call deferred to
 a `useEffect`, which only runs after that state has committed to the DOM. No more
 racing React's own reconciliation.
+
+## 13. Bugfix — Publish genuinely did nothing on an existing draft (the real cause)
+
+The previous two write-ups in this README (§12, and the race-condition fix before it)
+were real issues worth fixing, but neither was the actual root cause of "I click
+Publish and nothing happens." That turned out to be much simpler and completely
+unconditional: **`updateArticle` never included `status` in its database update at
+all.** `createArticle` (used only when making a brand-new article) correctly reads the
+submitted status and includes it — but `updateArticle` (used every time you edit an
+*existing* article, which is what "Publish" on an already-created draft actually calls)
+only ever sent title/subtitle/category/content/cover image/author/featured/tags/publish
+date. The status field was submitted by the form and simply ignored server-side. Other
+fields would save fine (which is why `updated_at` kept changing), but the article
+could never actually leave Draft through that path. Fixed by reading `status`
+separately in `updateArticle`, the same way `createArticle` already did.
